@@ -18,6 +18,7 @@ const main = () => {
     type Mutation {
       createTodo(text: String!) : Todo
       deleteTodo(id: Int!) : Todo
+      updateTodo(id: Int!, text: String!) : Todo
     }
 `;
 
