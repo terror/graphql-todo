@@ -1,13 +1,11 @@
 {
-  "dependencies": {},
+  "name": "graphql-todo",
   "devDependencies": {
-    "concurrently": "^6.0.2",
-    "ts-node-dev": "^1.1.6",
-    "typescript": "^4.2.4"
+    "lerna": "^4.0.0"
   },
   "scripts": {
-    "start": "node server/dist",
-    "dev": "concurrently \"cd client && yarn start\" \"cd server && yarn start\"",
+    "start": "lerna run start --scope @graphql-todo/server --stream",
+    "dev": "lerna run start --stream",
     "install": "(cd client && yarn install) && (cd server && yarn install)"
   }
 }
