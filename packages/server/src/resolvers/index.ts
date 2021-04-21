@@ -1,4 +1,4 @@
-import { getTodos, getTodo, createTodo } from './todo';
+import { getTodos, getTodo, createTodo, deleteTodo } from './todo';
 
 export const resolvers = {
   Query: {
@@ -7,5 +7,6 @@ export const resolvers = {
   },
   Mutation: {
     createTodo,
+    deleteTodo,
   },
 };

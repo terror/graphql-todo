@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, createContext, useContext } from 'react';
 import Wave from 'react-wavify';
-import useSWR from 'swr';
 
 import {
   Center,
   Stack,
   Text,
   Heading,
-  Spinner,
   UnorderedList,
   ListItem,
   Button,
@@ -17,19 +15,66 @@ import {
   StackItem,
 } from '@chakra-ui/react';
 
-import { fetcher } from './lib/fetcher';
-import { useQuery } from './lib/useQuery';
+import { endpoint } from './lib/fetcher';
+import { request, gql } from 'graphql-request';
+import { ColorModeSwitcher } from './ColorModeSwitcher';
 
 interface Todo {
   id: number;
   text: string;
 }
 
+const TodoContext = createContext({});
+
+const useTodos = () => {
+  return useContext(TodoContext);
+};
+
+const TodoProvider = ({ children }: any) => {
+  const [todos, setTodos] = useState<any>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const query = gql`
+      query {
+        getTodos {
+          id
+          text
+        }
+      }
+    `;
+    request(endpoint, query).then((data) => setTodos(data.getTodos));
+    setLoading(false);
+  }, []);
+
+  const value = {
+    todos,
+    setTodos,
+  };
+
+  return (
+    <TodoContext.Provider value={value}>
+      {!loading && children}
+    </TodoContext.Provider>
+  );
+};
+
 const Add = () => {
+  const { setTodos }: any = useTodos();
   const [val, setVal] = useState('');
 
   const handleClick = () => {
-    console.log(val);
+    const query = gql`
+      mutation {
+        createTodo(text: "${val}") {
+          id, text
+        }
+      }
+    `;
+    request(endpoint, query).then((data) => {
+      const { id, text } = data.createTodo;
+      setTodos((prevState: Todo[]) => [...prevState, { id, text }]);
+    });
   };
 
   const handleChange = (e: any) => {
@@ -53,25 +98,31 @@ const Add = () => {
 };
 
 const Todos = () => {
-  const { data, error } = useSWR(useQuery(), fetcher);
+  const { todos, setTodos }: any = useTodos();
 
-  const handleDelete = () => {};
-
-  if (error) return <div>Error: {JSON.stringify(error)}</div>;
-
-  if (!data)
-    return (
-      <div>
-        <Spinner />
-      </div>
-    );
+  const handleDelete = (id: number) => {
+    const query = gql`
+      mutation {
+        deleteTodo(id: ${id}) {
+          id
+        }
+      }
+    `;
+    request(endpoint, query).then((data) => {
+      setTodos(todos.filter((todo: Todo) => todo.id !== data.deleteTodo.id));
+    });
+  };
 
   return (
     <Center>
       <UnorderedList>
-        {data.getTodos.map((todo: Todo) => {
+        {todos.map((todo: Todo) => {
           return (
-            <ListItem mb={2} key={todo.id} onClick={handleDelete}>
+            <ListItem
+              mb={2}
+              key={todo.id}
+              onClick={() => handleDelete(todo.id)}
+            >
               {todo.text}
             </ListItem>
           );
@@ -88,16 +139,20 @@ export const App = () => {
         <Heading mt={2} fontStyle='italic'>
           GraphQL Todo!
         </Heading>
+        <ColorModeSwitcher />
         <Text>
           A fast, simple, robust and intuitive solution to your task management
           needs
         </Text>
-        <StackItem>
-          <Add />
-        </StackItem>
-        <StackItem>
-          <Todos />
-        </StackItem>
+
+        <TodoProvider>
+          <StackItem>
+            <Add />
+          </StackItem>
+          <StackItem>
+            <Todos />
+          </StackItem>
+        </TodoProvider>
       </Stack>
       <Wave
         fill='#ff9bf5'
